@@ -1,0 +1,12 @@
+[package]
+name = "seed_gen"
+description = ""
+version = "1.0.0"
+edition = "2021"
+license-file = "LICENSE"
+repository = "https://github.com/hardliner66/seed_gen"
+
+[dependencies]
+clap = { version = "4.5.15", features = ["derive"] }
+rand = "0.8.5"
+seahash = "4.1.0"
