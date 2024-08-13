@@ -1,6 +1,6 @@
 [package]
 name = "seed_gen"
-description = ""
+description = "A small helper to work with seeds in shell scripts"
 version = "1.0.0"
 edition = "2021"
 license-file = "LICENSE"
