@@ -1,48 +1,41 @@
 use std::str::FromStr;
 
-use clap::{Parser, Subcommand};
+use clap::Subcommand;
 use seahash::hash;
 
-pub struct Cli;
-
-impl Cli {
-    pub fn get_args() -> Args {
-        Args::parse()
-    }
-}
-
-#[derive(Parser, Debug)]
-pub struct Args {
-    #[command(subcommand)]
-    pub seeds: SubCommand,
-}
-
 #[derive(Subcommand, Debug)]
-pub enum SubCommand {
+pub enum Seeds {
     #[clap(visible_alias = "s")]
-    /// Returns the provided seed. If seed is a string, it is hashed beforehand
+    /// Execute the operation for a specified seed
     Single {
         /// The specified seed
         seed: NumberOrString,
     },
     #[clap(visible_aliases = ["r", "rand"])]
-    /// Returns the specied amount of random seeds
+    /// Execute the operation for a specified number of random seeds
     Random {
-        /// The amount of seeds to print
+        /// The number of seeds
         count: Option<u64>,
     },
-    /// Returns numbers in a range
+    /// Execute the operation across a specified range of seeds
     Range {
-        /// The lowest number to print
+        /// The starting point of the range
         min: u64,
-        /// The highest number to print
+        /// The ending point of the range
         max: u64,
         #[clap(short, long)]
-        /// The step size between two numbers
+        /// The interval between seeds in the range
         step: Option<u64>,
     },
-    /// Generates all values from u64::MIN to u64::MAX
+    /// Execute the operation across the full possible range of seeds
     Full,
+}
+
+impl Seeds {
+    #[must_use]
+    pub fn iter(&self) -> SeedIter {
+        <&Self as IntoIterator>::into_iter(self)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -91,30 +84,28 @@ impl Iterator for SeedIter {
     }
 }
 
-impl IntoIterator for &SubCommand {
+impl IntoIterator for &Seeds {
     type Item = u64;
 
     type IntoIter = SeedIter;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            SubCommand::Single { seed } => match seed {
+            Seeds::Single { seed } => match seed {
                 NumberOrString::Str(s) => {
                     let seed = hash(s.as_bytes());
                     SeedIter::new(seed, seed, 1, false)
                 }
                 NumberOrString::Number(n) => SeedIter::new(*n, *n, 1, false),
             },
-            SubCommand::Range { min, max, step } => {
-                SeedIter::new(*min, *max, step.unwrap_or(1), false)
-            }
-            SubCommand::Random { count } => SeedIter::new(1, count.unwrap_or(1), 1, true),
-            SubCommand::Full => SeedIter::new(u64::MIN, u64::MAX, 1, false),
+            Seeds::Range { min, max, step } => SeedIter::new(*min, *max, step.unwrap_or(1), false),
+            Seeds::Random { count } => SeedIter::new(1, count.unwrap_or(1), 1, true),
+            Seeds::Full => SeedIter::new(u64::MIN, u64::MAX, 1, false),
         }
     }
 }
 
-impl IntoIterator for SubCommand {
+impl IntoIterator for Seeds {
     type Item = u64;
 
     type IntoIter = SeedIter;
@@ -127,8 +118,9 @@ impl IntoIterator for SubCommand {
 impl FromStr for NumberOrString {
     type Err = &'static str; // The actual type doesn't matter since we never error, but it must implement `Display`
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(s.parse::<u64>()
-            .map(NumberOrString::Number)
-            .unwrap_or_else(|_| NumberOrString::Str(s.to_string())))
+        Ok(s.parse::<u64>().map_or_else(
+            |_| NumberOrString::Str(s.to_string()),
+            NumberOrString::Number,
+        ))
     }
 }
