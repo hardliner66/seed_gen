@@ -3,7 +3,7 @@ use std::str::FromStr;
 use clap::Subcommand;
 use seahash::hash;
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum Seeds {
     #[clap(visible_alias = "s")]
     /// Execute the operation for a specified seed
